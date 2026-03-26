@@ -1,10 +1,11 @@
+
 ---
 
 # Tesla Stock Volatility Analysis using GARCH Models (in R)
 
 ## Overview
 
-This project analyzes the volatility dynamics of Tesla stock returns using GARCH models in R.
+This project analyzes the volatility dynamics of Tesla stock returns using GARCH models in **R**.
 
 The objectives are to:
 
