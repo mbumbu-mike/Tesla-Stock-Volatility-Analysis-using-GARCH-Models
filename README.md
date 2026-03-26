@@ -121,10 +121,3 @@ Key takeaways:
 * Volatility clustering is present in Tesla daily returns
 * GARCH(1,1) captures time-varying risk effectively
 * Short-term volatility forecasts support risk management and investment decisions
-
----
-
-**Short Description for GitHub Repo:**
-Time series analysis of Tesla stock returns in R using GARCH models to capture volatility clustering and forecast conditional variance.
-
----
