@@ -1,0 +1,191 @@
+---
+title: "Tesla Stock Volatility Analysis using GARCH Models"
+output: html_document
+date: "2026-03-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Introduction
+
+This analysis examines the volatility dynamics of Tesla stock returns using GARCH models.
+The objective is to:
+
+* Compute and analyze daily log returns
+* Test for volatility clustering (heteroskedasticity)
+* Fit a GARCH(1,1) model
+* Evaluate model diagnostics
+* Forecast future volatility
+
+---
+
+# 1. Load Libraries
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(FinTS)
+library(rugarch)
+library(xts)
+```
+
+---
+
+# 2. Data Import and Preparation
+
+```{r}
+tesla <- read.csv("C:/Users/admin/Desktop/New folder/su work/1.2/timeseries/Garch_Assignment/TSLA1.csv")
+
+head(tesla)
+tail(tesla)
+```
+
+### Convert Date and Compute Log Returns
+
+```{r}
+tesla$Date <- as.Date(tesla$Date)
+
+tesla <- tesla %>%
+  arrange(Date) %>%
+  mutate(
+    log_return = 100 * (log(Adj.Close) - log(lag(Adj.Close)))
+  ) %>%
+  drop_na()
+
+summary(tesla$log_return)
+```
+
+---
+
+# 3. Exploratory Analysis
+
+### Plot Daily Log Returns
+
+```{r}
+plot(tesla$Date, tesla$log_return, type = "l",
+     main = "Tesla Daily Log Returns",
+     xlab = "Date",
+     ylab = "Log Returns (%)")
+```
+
+### Squared Returns (Volatility Clustering)
+
+```{r}
+plot(tesla$log_return^2, type = "l",
+     main = "Squared Returns (Volatility Clustering)",
+     ylab = "Squared Returns")
+```
+
+---
+
+# 4. Test for ARCH Effects
+
+```{r}
+ArchTest(tesla$log_return, lags = 12)
+```
+
+**Interpretation:**
+A significant p-value indicates the presence of ARCH effects (time-varying volatility), justifying the use of GARCH models.
+
+---
+
+# 5. GARCH Model Specification and Estimation
+
+```{r}
+spec_garch <- ugarchspec(
+  variance.model = list(model = "sGARCH", garchOrder = c(1,1)),
+  mean.model     = list(armaOrder = c(0,0), include.mean = TRUE),
+  distribution.model = "std"   # Student-t distribution
+)
+
+fit_garch <- ugarchfit(
+  spec = spec_garch,
+  data = tesla$log_return
+)
+
+show(fit_garch)
+```
+
+---
+
+# 6. Conditional Volatility Visualization
+
+```{r}
+tesla_xts <- xts(tesla$log_return, order.by = tesla$Date)
+volatility <- sigma(fit_garch)
+
+plot(tesla$Date, volatility, type = "l",
+     main = "Estimated Conditional Volatility (GARCH 1,1)",
+     xlab = "Date",
+     ylab = "Volatility (%)")
+```
+
+---
+
+# 7. Model Diagnostics
+
+### Standardized Residuals
+
+```{r}
+residuals <- residuals(fit_garch, standardize = TRUE)
+```
+
+### Ljung-Box Test
+
+```{r}
+Box.test(residuals^2, lag = 20, type = "Ljung-Box")
+```
+
+### ARCH Test on Residuals
+
+```{r}
+ArchTest(residuals, lags = 12)
+```
+
+### Residual Analysis Plots
+
+```{r}
+par(mfrow = c(2,2))
+
+acf(residuals, main = "ACF of Residuals")
+acf(residuals^2, main = "ACF of Squared Residuals")
+
+hist(residuals, breaks = 50,
+     main = "Histogram of Residuals",
+     xlab = "Residuals")
+
+qqnorm(residuals)
+qqline(residuals, col = "red")
+
+par(mfrow = c(1,1))
+```
+
+---
+
+# 8. Volatility Forecasting
+
+```{r}
+forecast <- ugarchforecast(fit_garch, n.ahead = 10)
+
+vol_forecast <- sigma(forecast)
+
+last_date <- max(tesla$Date)
+forecast_dates <- seq(last_date + 1, by = "days", length.out = 10)
+
+vol_forecast_xts <- xts(vol_forecast, order.by = forecast_dates)
+
+vol_forecast_xts
+```
+
+---
+
+# Conclusion
+
+The analysis confirms the presence of volatility clustering in Tesla stock returns.
+The GARCH(1,1) model effectively captures time-varying volatility and provides reasonable short-term forecasts.
+
+Such models are essential in financial risk management, portfolio optimization, and derivative pricing.
+
+```
